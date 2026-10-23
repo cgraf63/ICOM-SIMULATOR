@@ -1,5 +1,7 @@
 # ICOM-SIMULATOR
 
+**Deutsch** | [English](README.en.md)
+
 Ein CI-V-Simulator für das **LilyGO T-Embed (ESP32-S3)**. Damit kannst du Software wie Shack-Server, WSJT-X, flrig oder ein Logbuch testen, ohne ein Icom-Funkgerät zu besitzen.
 
 Das T-Embed gibt sich über USB-C als **Icom IC-7300** aus (CI-V-Adresse `0x94`). Am Rechner erscheint es als normaler serieller Port. Über den Drehknopf bedienst du es wie den VFO-Knopf eines echten Geräts.
