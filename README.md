@@ -16,12 +16,16 @@ Das T-Embed gibt sich über USB-C als **Icom IC-7300** aus (CI-V-Adresse `0x94`)
 
 ## Bedienung
 
-| Aktion | Funktion |
+Jeder **Druck** auf den Knopf schaltet weiter, was der Drehknopf verstellt: **FREQ → SCHRITT → MODE → BAND → FREQ**. Die aktive Funktion steht orange unter der Frequenz.
+
+| Funktion | Knopf drehen |
 |---|---|
-| Knopf drehen | Frequenz verstellen |
-| Knopf kurz drücken | Schrittweite wechseln (10 Hz / 100 Hz / 1 kHz / 10 kHz / 100 kHz) |
-| Knopf doppelt drücken | Mode wechseln (LSB, USB, USB-D, CW, AM, FM, RTTY) |
-| Knopf lang drücken | nächstes Band (160 m bis 6 m) |
+| FREQ | Frequenz verstellen (wird per Transceive gemeldet) |
+| SCHRITT | Schrittweite 10 Hz / 100 Hz / 1 kHz / 10 kHz / 100 kHz |
+| MODE | LSB, USB, USB-D, CW, AM, FM, RTTY |
+| BAND | 160 m bis 6 m |
+
+Nach 8 Sekunden ohne Bedienung springt der Knopf automatisch zurück auf FREQ. Solange der Knopf gedrückt ist, erscheint unten rechts **KNOPF**.
 
 ## Hardware
 
@@ -89,6 +93,7 @@ Alle Einstellungen findest du oben im Sketch:
 | Fehler `esp32-hal-periman.h: No such file` | ESP32-Boardpaket auf Version 3.x aktualisieren |
 | Fehler `has no member named 'setTxTimeoutMs'` oder `USB CDC On Boot` | Unter *Werkzeuge* **USB CDC On Boot** auf **Enabled** stellen |
 | Erstes Kompilieren dauert sehr lange | Normal nach einem Update des Boardpakets (10–20 Min.). Unter Windows hilft es, `%LOCALAPPDATA%\Arduino15` und `%LOCALAPPDATA%\Temp\arduino` vom Virenscanner auszuschließen. |
+| Knopfdruck bewirkt nichts | Prüfen, ob unten rechts **KNOPF** erscheint. Falls nicht, kommt der Druck nicht an: `PIN_ENC_BTN` prüfen. |
 | Display steht auf dem Kopf | `SCREEN_ROTATION` auf `3` ändern |
 | Frequenz läuft falsch herum | `ENC_REVERSE` auf `true` setzen |
 | LED-Ring bleibt dunkel | `PIN_LED_DATA` / `PIN_LED_CLK` von `42`/`45` auf `39`/`40` ändern. Die Quellen widersprechen sich bei diesen Pins. |

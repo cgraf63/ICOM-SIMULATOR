@@ -6,10 +6,14 @@
   wie mit einem echten Gerät.
 
   Bedienung:
-    Drehknopf drehen      Frequenz verstellen (wird per Transceive gemeldet)
-    Knopf kurz drücken    Schrittweite wechseln (10 Hz ... 100 kHz)
-    Knopf doppelt         Mode wechseln (LSB, USB, USB-D, CW, AM, FM, RTTY)
-    Knopf lang drücken    nächstes Band
+    Knopf drücken  schaltet weiter, was der Drehknopf verstellt:
+                   FREQ -> SCHRITT -> MODE -> BAND -> FREQ
+    Knopf drehen   FREQ:    Frequenz (wird per Transceive gemeldet)
+                   SCHRITT: Schrittweite 10 Hz ... 100 kHz
+                   MODE:    LSB, USB, USB-D, CW, AM, FM, RTTY
+                   BAND:    160 m ... 6 m
+    Nach 8 s ohne Bedienung springt der Knopf zurück auf FREQ.
+    Unten rechts erscheint "KNOPF", solange der Knopf gedrückt ist.
   LED-Ring:  grün = RX, rot = TX, kurz blau = CI-V-Frame empfangen
 
   Arduino IDE – Einstellungen (Werkzeuge):
@@ -402,33 +406,24 @@ int32_t encLast = 0;
 bool pendingFreqBroadcast = false;
 unsigned long lastBroadcast = 0;
 
-void handleEncoder() {
-  int32_t c = encCount;
-  int32_t det = (c - encLast) / ENC_DIV;
-  if (det == 0) return;
-  encLast += det * ENC_DIV;
-  if (ENC_REVERSE) det = -det;
+// Was der Drehknopf gerade verstellt. Jeder Druck auf den Knopf schaltet weiter.
+enum KnobFn { FN_FREQ, FN_STEP, FN_MODE, FN_BAND, NUM_FN };
+const char* fnNames[] = {"FREQ", "SCHRITT", "MODE", "BAND"};
+int knobFn = FN_FREQ;
+unsigned long lastKnobActivity = 0;
+#define KNOB_RETURN_MS 8000      // nach 8 s ohne Bedienung zurück auf Frequenz
 
-  int64_t f = (int64_t)cur().freq + (int64_t)det * steps[stepIdx];
-  f = (f / steps[stepIdx]) * steps[stepIdx];          // auf Schrittweite runden
-  if (f < (int64_t)BAND_LOW)  f = BAND_LOW;
-  if (f > (int64_t)BAND_HIGH) f = BAND_HIGH;
-  cur().freq = (uint64_t)f;
-  pendingFreqBroadcast = true;
-  dirty = true;
-}
-
-// ===================== Taste =====================
-bool btnRaw = false, btnStable = false;
-unsigned long btnRawChange = 0, btnDownAt = 0, btnReleaseAt = 0;
-bool longFired = false;
-int  clicks = 0;
-
-void nextBand() {
-  // nächstes Band oberhalb der aktuellen Frequenz, nach 6 m wieder 160 m
-  int idx = 0;
-  for (int i = 0; i < NUM_BANDS; i++)
-    if (bandFreqs[i] > cur().freq + 500000ULL) { idx = i; break; }
+void nextBand(int dir) {
+  int idx;
+  if (dir > 0) {                 // nächstes Band oberhalb, nach 6 m wieder 160 m
+    idx = 0;
+    for (int i = 0; i < NUM_BANDS; i++)
+      if (bandFreqs[i] > cur().freq + 500000ULL) { idx = i; break; }
+  } else {                       // nächstes Band unterhalb, vor 160 m wieder 6 m
+    idx = NUM_BANDS - 1;
+    for (int i = NUM_BANDS - 1; i >= 0; i--)
+      if (bandFreqs[i] + 500000ULL < cur().freq) { idx = i; break; }
+  }
   cur().freq = bandFreqs[idx];
   cur().mode = (cur().freq < 10000000ULL) ? 0x00 : 0x01;   // unter 10 MHz LSB
   cur().data = 0;
@@ -437,38 +432,69 @@ void nextBand() {
   dirty = true;
 }
 
-void nextMode() {
+void nextMode(int dir) {
   int idx = 0;
   for (int i = 0; i < NUM_MODES; i++)
     if (modeCycle[i].mode == cur().mode && modeCycle[i].data == (cur().data ? 1 : 0)) { idx = i; break; }
-  idx = (idx + 1) % NUM_MODES;
+  idx = (idx + (dir > 0 ? 1 : NUM_MODES - 1)) % NUM_MODES;
   cur().mode = modeCycle[idx].mode;
   cur().data = modeCycle[idx].data;
   broadcastMode();
   dirty = true;
 }
 
+void handleEncoder() {
+  int32_t c = encCount;
+  int32_t det = (c - encLast) / ENC_DIV;
+  if (det == 0) return;
+  encLast += det * ENC_DIV;
+  if (ENC_REVERSE) det = -det;
+  lastKnobActivity = millis();
+  dirty = true;
+
+  switch (knobFn) {
+    case FN_FREQ: {
+      int64_t f = (int64_t)cur().freq + (int64_t)det * steps[stepIdx];
+      f = (f / steps[stepIdx]) * steps[stepIdx];        // auf Schrittweite runden
+      if (f < (int64_t)BAND_LOW)  f = BAND_LOW;
+      if (f > (int64_t)BAND_HIGH) f = BAND_HIGH;
+      cur().freq = (uint64_t)f;
+      pendingFreqBroadcast = true;
+      break;
+    }
+    case FN_STEP:
+      stepIdx = constrain(stepIdx - (int)det, 0, NUM_STEPS - 1);   // rechts drehen = feiner
+      break;
+    case FN_MODE:
+      for (int i = 0; i < abs(det); i++) nextMode(det);
+      break;
+    case FN_BAND:
+      for (int i = 0; i < abs(det); i++) nextBand(det);
+      break;
+  }
+}
+
+// ===================== Taste =====================
+bool btnRaw = false, btnStable = false;
+unsigned long btnRawChange = 0;
+
 void handleButton() {
   unsigned long now = millis();
   bool raw = (digitalRead(PIN_ENC_BTN) == LOW);
-  if (raw != btnRaw) { btnRaw = raw; btnRawChange = now; }
+  if (raw != btnRaw) { btnRaw = raw; btnRawChange = now; dirty = true; }
 
-  if (now - btnRawChange > 25 && btnStable != btnRaw) {   // entprellt
+  if (now - btnRawChange > 30 && btnStable != btnRaw) {   // entprellt
     btnStable = btnRaw;
-    if (btnStable) { btnDownAt = now; longFired = false; }
-    else if (!longFired) { clicks++; btnReleaseAt = now; }
+    if (btnStable) {                                       // beim Drücken weiterschalten
+      knobFn = (knobFn + 1) % NUM_FN;
+      lastKnobActivity = now;
+      dirty = true;
+    }
   }
 
-  if (btnStable && !longFired && now - btnDownAt > 600) {  // lang gedrückt
-    longFired = true;
-    clicks = 0;
-    nextBand();
-  }
-
-  if (!btnStable && clicks > 0 && now - btnReleaseAt > 300) {
-    if (clicks == 1) { stepIdx = (stepIdx + 1) % NUM_STEPS; dirty = true; }
-    else nextMode();
-    clicks = 0;
+  if (knobFn != FN_FREQ && now - lastKnobActivity > KNOB_RETURN_MS) {
+    knobFn = FN_FREQ;
+    dirty = true;
   }
 }
 
@@ -541,11 +567,19 @@ void drawDisplay() {
   int cx = right - (stepPos[stepIdx] + 1) * cw;
   gfx->fillRect(cx, fy + 42, 25, 3, C_ACCENT);
 
-  // --- Infozeile
+  // --- Infozeile: was der Knopf gerade verstellt
+  if (knobFn == FN_FREQ) {
+    gfx->setTextSize(1);
+    gfx->setTextColor(C_DIM);
+    sprintf(buf, "Schritt %s", stepNames[stepIdx]);
+    gfx->setCursor(4, 82); gfx->print(buf);
+  } else {
+    if (knobFn == FN_STEP) sprintf(buf, "%s %s", fnNames[knobFn], stepNames[stepIdx]);
+    else                   sprintf(buf, "Knopf: %s", fnNames[knobFn]);
+    pill(2, 74, buf, C_ACCENT, C_BG);
+  }
   gfx->setTextSize(1);
   gfx->setTextColor(C_DIM);
-  sprintf(buf, "Schritt %s", stepNames[stepIdx]);
-  gfx->setCursor(4, 82); gfx->print(buf);
   sprintf(buf, "%s  0x%02X", RADIO_NAME, RADIO_ADDR);
   gfx->setCursor(316 - strlen(buf) * 6, 82); gfx->print(buf);
 
@@ -596,6 +630,12 @@ void drawDisplay() {
   gfx->setCursor(4, 160); gfx->print(buf);
   sprintf(buf, "Frames %lu", (unsigned long)frameCount);
   gfx->setCursor(4 + 22 * 6, 160); gfx->print(buf);
+
+  // Kontrollanzeige: leuchtet, solange der Knopf gedrückt ist
+  if (btnRaw) {
+    gfx->setTextColor(C_ACCENT);
+    gfx->setCursor(316 - 5 * 6, 160); gfx->print("KNOPF");
+  }
 
   gfx->flush();
 }

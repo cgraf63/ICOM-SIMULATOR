@@ -16,12 +16,16 @@ Over USB-C, the T-Embed identifies itself as an **Icom IC-7300** (CI-V address `
 
 ## Controls
 
-| Action | Function |
+Each **press** of the knob switches what turning it controls: **FREQ → SCHRITT (step) → MODE → BAND → FREQ**. The active function is shown in orange below the frequency.
+
+| Function | Turning the knob |
 |---|---|
-| Turn knob | Tune frequency |
-| Short press | Change tuning step (10 Hz / 100 Hz / 1 kHz / 10 kHz / 100 kHz) |
-| Double press | Change mode (LSB, USB, USB-D, CW, AM, FM, RTTY) |
-| Long press | Next band (160 m to 6 m) |
+| FREQ | Tune frequency (reported via transceive) |
+| SCHRITT | Tuning step 10 Hz / 100 Hz / 1 kHz / 10 kHz / 100 kHz |
+| MODE | LSB, USB, USB-D, CW, AM, FM, RTTY |
+| BAND | 160 m to 6 m |
+
+After 8 seconds without input, the knob returns to FREQ. While the knob is pressed, **KNOPF** appears at the bottom right.
 
 ## Hardware
 
@@ -89,6 +93,7 @@ All settings are at the top of the sketch:
 | Error `esp32-hal-periman.h: No such file` | Update the ESP32 board package to version 3.x |
 | Error `has no member named 'setTxTimeoutMs'` or `USB CDC On Boot` | Set **USB CDC On Boot** to **Enabled** under *Tools* |
 | First compile takes very long | Normal after a board package update (10–20 min). On Windows, excluding `%LOCALAPPDATA%\Arduino15` and `%LOCALAPPDATA%\Temp\arduino` from the virus scanner helps. |
+| Pressing the knob does nothing | Check whether **KNOPF** appears at the bottom right. If not, the press is not detected: check `PIN_ENC_BTN`. |
 | Display is upside down | Set `SCREEN_ROTATION` to `3` |
 | Frequency moves the wrong way | Set `ENC_REVERSE` to `true` |
 | LED ring stays dark | Change `PIN_LED_DATA` / `PIN_LED_CLK` from `42`/`45` to `39`/`40`. Sources disagree on these pins. |
