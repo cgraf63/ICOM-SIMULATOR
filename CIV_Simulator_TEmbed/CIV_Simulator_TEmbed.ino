@@ -566,7 +566,7 @@ void drawDisplay() {
   // Markierung unter der Stelle, die der Knopf verstellt
   const int stepPos[] = {1, 2, 4, 5, 6};        // Zeichen von rechts (0 = 1-Hz-Stelle)
   int cx = right - (stepPos[stepIdx] + 1) * cw;
-  gfx->fillRect(cx, fy + 42, 25, 3, C_ACCENT);
+  gfx->fillRect(cx, fy + 40, 25, 2, C_ACCENT);
 
   // --- Infozeile: was der Knopf gerade verstellt
   if (knobFn == FN_FREQ) {

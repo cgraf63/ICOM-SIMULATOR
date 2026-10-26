@@ -6,6 +6,15 @@ A CI-V simulator for the **LilyGO T-Embed (ESP32-S3)**. It lets you test softwar
 
 Over USB-C, the T-Embed identifies itself as an **Icom IC-7300** (CI-V address `0x94`). Your computer sees it as an ordinary serial port. You operate it with the rotary knob, just like the VFO knob of a real radio.
 
+The repository contains two sketches:
+
+| Folder | Simulates | Protocol |
+|---|---|---|
+| `CIV_Simulator_TEmbed` | Icom IC-7300 (and other Icom radios) | CI-V |
+| `YAESU_FTX1_Simulator_TEmbed` | Yaesu FTX-1 | Yaesu CAT, see [Yaesu FTX-1](#yaesu-ftx-1) |
+
+Hardware, installation, controls and troubleshooting are the same for both.
+
 ## Features
 
 - Answers the common CI-V commands: frequency, mode, data mode, VFO A/B, split, PTT, levels, meters (S-meter, power, SWR, ALC, voltage, current), functions and transceiver ID.
@@ -118,6 +127,43 @@ All settings are at the top of the sketch:
 | `1A 06` | Data mode |
 | `1C 00` / `1C 01` | PTT / tuner |
 | `25` / `26` | Frequency / mode per VFO |
+
+## Yaesu FTX-1
+
+The sketch `YAESU_FTX1_Simulator_TEmbed/YAESU_FTX1_Simulator_TEmbed.ino` simulates a **Yaesu FTX-1**. Yaesu does not use CI-V but **CAT**: text commands terminated by `;`, for example `FA014074000;` for 14.074 MHz.
+
+**Settings in your software (e.g. Shack-Server):** radio **Yaesu FTX-1** (Hamlib model 1051), the T-Embed's port, **38400** baud (no effect over native USB), 8N1.
+
+**Differences from the Icom sketch:**
+- The top left shows **MAIN** or **SUB** instead of VFO A/B, and **YAESU FTX-1** appears below the S-meter.
+- Modes: LSB, USB, DATA-U, DATA-L, CW-U, AM, FM, FM-N, RTTY-L, PSK, C4FM.
+- Bands 160 m to 6 m plus **2 m** and **70 cm**. Frequencies from 100 MHz up use a slightly smaller font.
+- Knob changes are only reported unsolicited when the software enables **auto information** (`AI1;`). "AI ein" then appears to the right of the tuning step.
+- The bottom left shows the last command received in plain text, e.g. `FA;`.
+
+**Important:** The reply to `ID;` is still a placeholder (`0840`). Look up the correct value under the "ID" command in the FTX-1 CAT manual and enter it at `RADIO_ID` at the top of the sketch if your software checks the ID.
+
+**Supported CAT commands:**
+
+| Command | Function |
+|---|---|
+| `ID` | Transceiver ID |
+| `PS` | Power status (always on) |
+| `AI` | Auto information on/off |
+| `FA` / `FB` | Frequency MAIN / SUB (9 digits) |
+| `MD0` / `MD1` | Mode MAIN / SUB |
+| `IF` / `OI` | Status information MAIN / SUB (30 characters) |
+| `VS` | Select MAIN/SUB |
+| `FT` / `ST` | TX VFO (split) |
+| `TX` | Transmit / receive |
+| `SM0` / `SM1` | S-meter |
+| `RM` | Meters (S, COMP, ALC, PO, SWR, IDD, VDD) |
+| `PC` | RF power |
+| `AG` / `RG` / `SQ` | AF gain / RF gain / squelch |
+| `NA` | Narrow filter |
+| `BS` | Band select (1.8–50 MHz) |
+
+Unknown or malformed commands are answered with `?;`, like a real FTX-1.
 
 ## Note
 

@@ -6,6 +6,15 @@ Ein CI-V-Simulator für das **LilyGO T-Embed (ESP32-S3)**. Damit kannst du Softw
 
 Das T-Embed gibt sich über USB-C als **Icom IC-7300** aus (CI-V-Adresse `0x94`). Am Rechner erscheint es als normaler serieller Port. Über den Drehknopf bedienst du es wie den VFO-Knopf eines echten Geräts.
 
+Das Repository enthält zwei Sketches:
+
+| Ordner | Simuliert | Protokoll |
+|---|---|---|
+| `CIV_Simulator_TEmbed` | Icom IC-7300 (und andere Icom-Geräte) | CI-V |
+| `YAESU_FTX1_Simulator_TEmbed` | Yaesu FTX-1 | Yaesu-CAT, siehe [Yaesu FTX-1](#yaesu-ftx-1) |
+
+Hardware, Installation, Bedienung und Fehlersuche sind bei beiden gleich.
+
 ## Funktionen
 
 - Beantwortet die gängigen CI-V-Befehle: Frequenz, Mode, Data-Mode, VFO A/B, Split, PTT, Pegel, Messwerte (S-Meter, Leistung, SWR, ALC, Spannung, Strom), Funktionen und Geräte-ID.
@@ -118,6 +127,43 @@ Alle Einstellungen findest du oben im Sketch:
 | `1A 06` | Data-Mode |
 | `1C 00` / `1C 01` | PTT / Tuner |
 | `25` / `26` | Frequenz / Mode je VFO |
+
+## Yaesu FTX-1
+
+Der Sketch `YAESU_FTX1_Simulator_TEmbed/YAESU_FTX1_Simulator_TEmbed.ino` simuliert einen **Yaesu FTX-1**. Yaesu verwendet kein CI-V, sondern **CAT**: Textbefehle, die mit `;` enden, zum Beispiel `FA014074000;` für 14,074 MHz.
+
+**Einstellungen im Programm (z. B. Shack-Server):** Gerät **Yaesu FTX-1** (Hamlib-Modell 1051), den Port des T-Embed, **38400** Baud (bei nativem USB ohne Bedeutung), 8N1.
+
+**Unterschiede zum Icom-Sketch:**
+- Oben links steht **MAIN** oder **SUB** statt VFO A/B, unter dem S-Meter **YAESU FTX-1**.
+- Modes: LSB, USB, DATA-U, DATA-L, CW-U, AM, FM, FM-N, RTTY-L, PSK, C4FM.
+- Bänder 160 m bis 6 m sowie **2 m** und **70 cm**. Frequenzen ab 100 MHz werden etwas kleiner dargestellt.
+- Änderungen am Knopf meldet der Simulator nur von selbst, wenn das Programm **Auto-Information** einschaltet (`AI1;`). Rechts neben der Schrittweite steht dann „AI ein“.
+- Unten links steht der zuletzt empfangene Befehl im Klartext, z. B. `FA;`.
+
+**Wichtig:** Die Antwort auf `ID;` ist noch ein Platzhalter (`0840`). Den richtigen Wert findest du im FTX-1 CAT-Handbuch beim Befehl „ID“. Trag ihn oben im Sketch bei `RADIO_ID` ein, falls dein Programm die ID prüft.
+
+**Unterstützte CAT-Befehle:**
+
+| Befehl | Funktion |
+|---|---|
+| `ID` | Geräte-ID |
+| `PS` | Einschaltzustand (immer an) |
+| `AI` | Auto-Information ein/aus |
+| `FA` / `FB` | Frequenz MAIN / SUB (9 Stellen) |
+| `MD0` / `MD1` | Mode MAIN / SUB |
+| `IF` / `OI` | Statusinformation MAIN / SUB (30 Zeichen) |
+| `VS` | MAIN/SUB auswählen |
+| `FT` / `ST` | Sende-VFO (Split) |
+| `TX` | Senden / Empfangen |
+| `SM0` / `SM1` | S-Meter |
+| `RM` | Messwerte (S, COMP, ALC, PO, SWR, IDD, VDD) |
+| `PC` | Sendeleistung |
+| `AG` / `RG` / `SQ` | NF-Pegel / HF-Verstärkung / Squelch |
+| `NA` | Schmal-Filter |
+| `BS` | Bandwahl (1,8–50 MHz) |
+
+Unbekannte oder falsch aufgebaute Befehle beantwortet der Simulator mit `?;`, wie ein echter FTX-1.
 
 ## Hinweis
 
