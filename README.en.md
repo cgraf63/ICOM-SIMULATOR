@@ -32,7 +32,7 @@ No other hardware is needed.
 
 ## Installation
 
-1. Install the **Arduino IDE** and add **esp32 by Espressif Systems** in the Boards Manager.
+1. Install the **Arduino IDE** and install **esp32 by Espressif Systems** **version 3.x** in the Boards Manager. The sketch does not compile with version 2.x.
 2. Install these libraries in the Library Manager:
    - **GFX Library for Arduino** (moononournation), version 1.5 or newer
    - **FastLED**
@@ -86,6 +86,9 @@ All settings are at the top of the sketch:
 
 | Problem | Solution |
 |---|---|
+| Error `esp32-hal-periman.h: No such file` | Update the ESP32 board package to version 3.x |
+| Error `has no member named 'setTxTimeoutMs'` or `USB CDC On Boot` | Set **USB CDC On Boot** to **Enabled** under *Tools* |
+| First compile takes very long | Normal after a board package update (10–20 min). On Windows, excluding `%LOCALAPPDATA%\Arduino15` and `%LOCALAPPDATA%\Temp\arduino` from the virus scanner helps. |
 | Display is upside down | Set `SCREEN_ROTATION` to `3` |
 | Frequency moves the wrong way | Set `ENC_REVERSE` to `true` |
 | LED ring stays dark | Change `PIN_LED_DATA` / `PIN_LED_CLK` from `42`/`45` to `39`/`40`. Sources disagree on these pins. |

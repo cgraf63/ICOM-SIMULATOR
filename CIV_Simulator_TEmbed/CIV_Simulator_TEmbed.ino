@@ -13,6 +13,7 @@
   LED-Ring:  grün = RX, rot = TX, kurz blau = CI-V-Frame empfangen
 
   Arduino IDE – Einstellungen (Werkzeuge):
+    Boardpaket: "esp32 by Espressif Systems" Version 3.x
     Board: "ESP32S3 Dev Module"
     USB CDC On Boot: Enabled
     USB Mode: Hardware CDC and JTAG
@@ -35,6 +36,14 @@
 #include <Arduino.h>
 #include <Arduino_GFX_Library.h>
 #include <FastLED.h>
+
+// Prüfen, ob die Board-Einstellungen stimmen
+#if !defined(ESP_ARDUINO_VERSION_MAJOR) || ESP_ARDUINO_VERSION_MAJOR < 3
+#error "ESP32-Boardpaket 3.x nötig: Boards Manager -> esp32 by Espressif Systems -> Version 3.x installieren"
+#endif
+#if !ARDUINO_USB_CDC_ON_BOOT
+#error "Werkzeuge -> USB CDC On Boot -> Enabled einstellen (sonst ist Serial nicht der USB-Port)"
+#endif
 
 // ===================== Konfiguration =====================
 #define CIV_SERIAL   Serial     // USB-C-Port (native USB)
