@@ -73,6 +73,10 @@
 #define PIN_ENC_A       2
 #define PIN_ENC_B       1
 #define PIN_ENC_BTN     0
+
+// Diagnose: zeigt unten rechts alle freien Pins an, die auf LOW liegen.
+// Knopf drücken und schauen, welche Nummer dazukommt. Danach auf 0 setzen.
+#define BTN_SCAN        1
 // LED-Ring APA102: laut LilyGO-Beispielcode 42/45. Die LilyGO-Wiki nennt 39/40.
 // Falls die LEDs dunkel bleiben, hier die anderen Werte eintragen.
 #define PIN_LED_DATA   42
@@ -538,6 +542,38 @@ void pill(int x, int y, const char* txt, uint16_t bg, uint16_t fg) {
   gfx->print(txt);
 }
 
+// ===================== Diagnose: Pin-Suche =====================
+#if BTN_SCAN
+// Freie Pins des T-Embed (ohne Display, Drehgeber, LEDs, SD-Karte, Flash/PSRAM, USB)
+const uint8_t scanPins[] = {0, 3, 4, 5, 6, 7, 8, 14, 16, 17, 18, 21, 47, 48};
+const int NUM_SCAN = sizeof(scanPins) / sizeof(scanPins[0]);
+uint32_t scanLowMask = 0;
+
+void initScan() {
+  for (int i = 0; i < NUM_SCAN; i++) pinMode(scanPins[i], INPUT_PULLUP);
+}
+
+void updateScan() {
+  uint32_t m = 0;
+  for (int i = 0; i < NUM_SCAN; i++)
+    if (digitalRead(scanPins[i]) == LOW) m |= (1UL << i);
+  if (m != scanLowMask) { scanLowMask = m; dirty = true; }
+}
+
+void drawScan() {
+  char buf[48] = "LOW:";
+  for (int i = 0; i < NUM_SCAN; i++)
+    if (scanLowMask & (1UL << i)) {
+      char n[6]; sprintf(n, " %d", scanPins[i]);
+      if (strlen(buf) + strlen(n) < sizeof(buf)) strcat(buf, n);
+    }
+  if (!scanLowMask) strcat(buf, " -");
+  gfx->setTextSize(1);
+  gfx->setTextColor(C_BLUE);
+  gfx->setCursor(4, 146); gfx->print(buf);
+}
+#endif
+
 void drawDisplay() {
   char buf[32];
   gfx->fillScreen(C_BG);
@@ -636,6 +672,9 @@ void drawDisplay() {
     gfx->setTextColor(C_ACCENT);
     gfx->setCursor(316 - 5 * 6, 160); gfx->print("KNOPF");
   }
+#if BTN_SCAN
+  drawScan();
+#endif
 
   gfx->flush();
 }
@@ -686,6 +725,14 @@ void setup() {
   FastLED.setBrightness(LED_BRIGHTNESS);
 
   randomSeed(esp_random());
+
+  // Knopf-Pin nach dem Start der Bibliotheken noch einmal einrichten,
+  // falls eine davon GPIO 0 umkonfiguriert hat.
+#if BTN_SCAN
+  initScan();
+#endif
+  pinMode(PIN_ENC_BTN, INPUT_PULLUP);
+
   drawDisplay();
 }
 
@@ -698,6 +745,9 @@ void loop() {
 
   handleEncoder();
   handleButton();
+#if BTN_SCAN
+  updateScan();
+#endif
 
   // Frequenzänderungen vom Knopf höchstens alle 100 ms melden
   if (pendingFreqBroadcast && millis() - lastBroadcast >= 100) {
