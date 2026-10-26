@@ -93,7 +93,7 @@ Alle Einstellungen findest du oben im Sketch:
 | Fehler `esp32-hal-periman.h: No such file` | ESP32-Boardpaket auf Version 3.x aktualisieren |
 | Fehler `has no member named 'setTxTimeoutMs'` oder `USB CDC On Boot` | Unter *Werkzeuge* **USB CDC On Boot** auf **Enabled** stellen |
 | Erstes Kompilieren dauert sehr lange | Normal nach einem Update des Boardpakets (10–20 Min.). Unter Windows hilft es, `%LOCALAPPDATA%\Arduino15` und `%LOCALAPPDATA%\Temp\arduino` vom Virenscanner auszuschließen. |
-| Knopfdruck bewirkt nichts | Prüfen, ob unten rechts **KNOPF** erscheint. Falls nicht, kommt der Druck nicht an: `PIN_ENC_BTN` prüfen. |
+| Knopfdruck bewirkt nichts, **KNOPF** steht dauerhaft unten rechts | FastLED belegt GPIO 0 (Knopf) bei der ersten LED-Ausgabe. Der Sketch richtet den Pin deshalb danach neu ein. Bei eigenen Änderungen darauf achten, dass `FastLED.show()` in `setup()` **vor** `pinMode(PIN_ENC_BTN, INPUT_PULLUP)` steht. |
 | Display steht auf dem Kopf | `SCREEN_ROTATION` auf `3` ändern |
 | Frequenz läuft falsch herum | `ENC_REVERSE` auf `true` setzen |
 | LED-Ring bleibt dunkel | `PIN_LED_DATA` / `PIN_LED_CLK` von `42`/`45` auf `39`/`40` ändern. Die Quellen widersprechen sich bei diesen Pins. |

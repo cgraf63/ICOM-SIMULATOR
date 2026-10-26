@@ -73,11 +73,7 @@
 #define PIN_ENC_A       2
 #define PIN_ENC_B       1
 #define PIN_ENC_BTN     0
-
-// Diagnose: zeigt unten rechts alle freien Pins an, die auf LOW liegen.
-// Knopf drücken und schauen, welche Nummer dazukommt. Danach auf 0 setzen.
-#define BTN_SCAN        1
-#define USE_LEDS        1       // 0 = LED-Ring nicht ansteuern (zum Testen)
+#define USE_LEDS        1       // 0 = LED-Ring nicht ansteuern
 // LED-Ring APA102: laut LilyGO-Beispielcode 42/45. Die LilyGO-Wiki nennt 39/40.
 // Falls die LEDs dunkel bleiben, hier die anderen Werte eintragen.
 #define PIN_LED_DATA   42
@@ -543,69 +539,6 @@ void pill(int x, int y, const char* txt, uint16_t bg, uint16_t fg) {
   gfx->print(txt);
 }
 
-// ===================== Diagnose: Pin-Suche =====================
-#if BTN_SCAN
-// Freie Pins des T-Embed (ohne Display, Drehgeber, LEDs, SD-Karte, Flash/PSRAM, USB)
-const uint8_t scanPins[] = {0, 3, 4, 5, 6, 7, 8, 14, 16, 17, 18, 21, 47, 48};
-const int NUM_SCAN = sizeof(scanPins) / sizeof(scanPins[0]);
-uint32_t scanLowMask = 0;
-bool     scanInit = false;
-uint16_t scanChanges[NUM_SCAN];       // Anzahl Wechsel je Pin seit dem Start
-
-void initScan() {
-  for (int i = 0; i < NUM_SCAN; i++) { pinMode(scanPins[i], INPUT_PULLUP); scanChanges[i] = 0; }
-}
-
-void updateScan() {
-  static unsigned long last = 0;
-  if (millis() - last < 10) return;    // alle 10 ms, entprellt genug für die Zählung
-  last = millis();
-  uint32_t m = 0;
-  for (int i = 0; i < NUM_SCAN; i++)
-    if (digitalRead(scanPins[i]) == LOW) m |= (1UL << i);
-  if (!scanInit) { scanLowMask = m; scanInit = true; dirty = true; return; }
-  if (m != scanLowMask) {
-    uint32_t changed = m ^ scanLowMask;
-    for (int i = 0; i < NUM_SCAN; i++)
-      if ((changed & (1UL << i)) && scanChanges[i] < 999) scanChanges[i]++;
-    scanLowMask = m;
-    dirty = true;
-  }
-}
-
-// GPIO 0 nach jedem Startschritt: Start, Display, LED-Init, erste LED-Ausgabe, Ende
-int g0Stage[5] = {-1, -1, -1, -1, -1};
-
-void drawScan() {
-  char g0[40];
-  sprintf(g0, "G0 Start/Disp/LED/Show/Ende: %d %d %d %d %d",
-          g0Stage[0], g0Stage[1], g0Stage[2], g0Stage[3], g0Stage[4]);
-  gfx->setTextSize(1);
-  gfx->setTextColor(C_BLUE);
-  gfx->setCursor(4, 136); gfx->print(g0);
-
-  char buf[64] = "LOW:";
-  for (int i = 0; i < NUM_SCAN; i++)
-    if (scanLowMask & (1UL << i)) {
-      char n[6]; sprintf(n, " %d", scanPins[i]);
-      if (strlen(buf) + strlen(n) < sizeof(buf)) strcat(buf, n);
-    }
-  if (!scanLowMask) strcat(buf, " -");
-  strcat(buf, "  Wechsel:");
-  bool any = false;
-  for (int i = 0; i < NUM_SCAN; i++)
-    if (scanChanges[i]) {
-      char n[14]; sprintf(n, " %d(%dx)", scanPins[i], scanChanges[i]);
-      if (strlen(buf) + strlen(n) < sizeof(buf)) strcat(buf, n);
-      any = true;
-    }
-  if (!any) strcat(buf, " -");
-  gfx->setTextSize(1);
-  gfx->setTextColor(C_BLUE);
-  gfx->setCursor(4, 146); gfx->print(buf);
-}
-#endif
-
 void drawDisplay() {
   char buf[32];
   gfx->fillScreen(C_BG);
@@ -704,9 +637,6 @@ void drawDisplay() {
     gfx->setTextColor(C_ACCENT);
     gfx->setCursor(316 - 5 * 6, 160); gfx->print("KNOPF");
   }
-#if BTN_SCAN
-  drawScan();
-#endif
 
   gfx->flush();
 }
@@ -749,45 +679,23 @@ void setup() {
   pinMode(PIN_ENC_BTN, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(PIN_ENC_A), encISR, CHANGE);
   attachInterrupt(digitalPinToInterrupt(PIN_ENC_B), encISR, CHANGE);
-#if BTN_SCAN
-  delay(5);
-  g0Stage[0] = digitalRead(PIN_ENC_BTN);
-#endif
 
   gfx->begin();
   pinMode(PIN_LCD_BL, OUTPUT);
   digitalWrite(PIN_LCD_BL, HIGH);
-#if BTN_SCAN
-  g0Stage[1] = digitalRead(PIN_ENC_BTN);
-#endif
 
 #if USE_LEDS
   FastLED.addLeds<APA102, PIN_LED_DATA, PIN_LED_CLK, BGR>(leds, NUM_LEDS);
   FastLED.setBrightness(LED_BRIGHTNESS);
-#endif
-#if BTN_SCAN
-  g0Stage[2] = digitalRead(PIN_ENC_BTN);
-#endif
-#if USE_LEDS
+  // Erste LED-Ausgabe schon hier: FastLED richtet dabei seine Hardware ein
+  // und belegt GPIO 0 (Knopf). Der Knopf-Pin wird deshalb danach neu gesetzt.
   FastLED.show();
-#endif
-#if BTN_SCAN
-  delay(5);
-  g0Stage[3] = digitalRead(PIN_ENC_BTN);
 #endif
 
   randomSeed(esp_random());
 
-  // Knopf-Pin nach dem Start der Bibliotheken noch einmal einrichten,
-  // falls eine davon GPIO 0 umkonfiguriert hat.
-#if BTN_SCAN
-  initScan();
-#endif
+  // Knopf-Pin nach dem Start von FastLED wieder als Eingang einrichten
   pinMode(PIN_ENC_BTN, INPUT_PULLUP);
-#if BTN_SCAN
-  delay(5);
-  g0Stage[4] = digitalRead(PIN_ENC_BTN);
-#endif
 
   drawDisplay();
 }
@@ -801,9 +709,6 @@ void loop() {
 
   handleEncoder();
   handleButton();
-#if BTN_SCAN
-  updateScan();
-#endif
 
   // Frequenzänderungen vom Knopf höchstens alle 100 ms melden
   if (pendingFreqBroadcast && millis() - lastBroadcast >= 100) {

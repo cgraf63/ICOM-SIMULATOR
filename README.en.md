@@ -93,7 +93,7 @@ All settings are at the top of the sketch:
 | Error `esp32-hal-periman.h: No such file` | Update the ESP32 board package to version 3.x |
 | Error `has no member named 'setTxTimeoutMs'` or `USB CDC On Boot` | Set **USB CDC On Boot** to **Enabled** under *Tools* |
 | First compile takes very long | Normal after a board package update (10–20 min). On Windows, excluding `%LOCALAPPDATA%\Arduino15` and `%LOCALAPPDATA%\Temp\arduino` from the virus scanner helps. |
-| Pressing the knob does nothing | Check whether **KNOPF** appears at the bottom right. If not, the press is not detected: check `PIN_ENC_BTN`. |
+| Pressing the knob does nothing, **KNOPF** stays on at the bottom right | FastLED claims GPIO 0 (the knob button) on its first LED output. The sketch therefore re-initialises the pin afterwards. If you modify the sketch, keep `FastLED.show()` in `setup()` **before** `pinMode(PIN_ENC_BTN, INPUT_PULLUP)`. |
 | Display is upside down | Set `SCREEN_ROTATION` to `3` |
 | Frequency moves the wrong way | Set `ENC_REVERSE` to `true` |
 | LED ring stays dark | Change `PIN_LED_DATA` / `PIN_LED_CLK` from `42`/`45` to `39`/`40`. Sources disagree on these pins. |
