@@ -77,6 +77,7 @@
 // Diagnose: zeigt unten rechts alle freien Pins an, die auf LOW liegen.
 // Knopf drücken und schauen, welche Nummer dazukommt. Danach auf 0 setzen.
 #define BTN_SCAN        1
+#define USE_LEDS        1       // 0 = LED-Ring nicht ansteuern (zum Testen)
 // LED-Ring APA102: laut LilyGO-Beispielcode 42/45. Die LilyGO-Wiki nennt 39/40.
 // Falls die LEDs dunkel bleiben, hier die anderen Werte eintragen.
 #define PIN_LED_DATA   42
@@ -572,7 +573,17 @@ void updateScan() {
   }
 }
 
+// GPIO 0 nach jedem Startschritt: Start, Display, LED-Init, erste LED-Ausgabe, Ende
+int g0Stage[5] = {-1, -1, -1, -1, -1};
+
 void drawScan() {
+  char g0[40];
+  sprintf(g0, "G0 Start/Disp/LED/Show/Ende: %d %d %d %d %d",
+          g0Stage[0], g0Stage[1], g0Stage[2], g0Stage[3], g0Stage[4]);
+  gfx->setTextSize(1);
+  gfx->setTextColor(C_BLUE);
+  gfx->setCursor(4, 136); gfx->print(g0);
+
   char buf[64] = "LOW:";
   for (int i = 0; i < NUM_SCAN; i++)
     if (scanLowMask & (1UL << i)) {
@@ -702,6 +713,7 @@ void drawDisplay() {
 
 // ===================== LED-Ring =====================
 void updateLeds() {
+  if (!USE_LEDS) return;
   static CRGB lastBase = CRGB::Black;
   static bool lastFlash = false;
   CRGB base   = ptt ? CRGB(255, 0, 0) : CRGB(0, 160, 40);
@@ -737,13 +749,32 @@ void setup() {
   pinMode(PIN_ENC_BTN, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(PIN_ENC_A), encISR, CHANGE);
   attachInterrupt(digitalPinToInterrupt(PIN_ENC_B), encISR, CHANGE);
+#if BTN_SCAN
+  delay(5);
+  g0Stage[0] = digitalRead(PIN_ENC_BTN);
+#endif
 
   gfx->begin();
   pinMode(PIN_LCD_BL, OUTPUT);
   digitalWrite(PIN_LCD_BL, HIGH);
+#if BTN_SCAN
+  g0Stage[1] = digitalRead(PIN_ENC_BTN);
+#endif
 
+#if USE_LEDS
   FastLED.addLeds<APA102, PIN_LED_DATA, PIN_LED_CLK, BGR>(leds, NUM_LEDS);
   FastLED.setBrightness(LED_BRIGHTNESS);
+#endif
+#if BTN_SCAN
+  g0Stage[2] = digitalRead(PIN_ENC_BTN);
+#endif
+#if USE_LEDS
+  FastLED.show();
+#endif
+#if BTN_SCAN
+  delay(5);
+  g0Stage[3] = digitalRead(PIN_ENC_BTN);
+#endif
 
   randomSeed(esp_random());
 
@@ -753,6 +784,10 @@ void setup() {
   initScan();
 #endif
   pinMode(PIN_ENC_BTN, INPUT_PULLUP);
+#if BTN_SCAN
+  delay(5);
+  g0Stage[4] = digitalRead(PIN_ENC_BTN);
+#endif
 
   drawDisplay();
 }
