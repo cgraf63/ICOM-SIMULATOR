@@ -581,7 +581,7 @@ void drawDisplay() {
   }
   gfx->setTextSize(1);
   gfx->setTextColor(C_DIM);
-  sprintf(buf, "%s  0x%02X", RADIO_NAME, RADIO_ADDR);
+  sprintf(buf, "CI-V 0x%02X", RADIO_ADDR);
   gfx->setCursor(316 - strlen(buf) * 6, 82); gfx->print(buf);
 
   // --- Meter: S-Meter (RX) oder Leistung (TX)
@@ -620,6 +620,13 @@ void drawDisplay() {
   gfx->setTextSize(2);
   gfx->setTextColor(C_TEXT);
   gfx->setCursor(316 - strlen(buf) * 12, my + 20);
+  gfx->print(buf);
+
+  // --- Gerätename unter dem S-Meter
+  sprintf(buf, "ICOM %s", RADIO_NAME);
+  gfx->setTextSize(2);
+  gfx->setTextColor(C_TEXT);
+  gfx->setCursor(4, my + 26);
   gfx->print(buf);
 
   // --- Statuszeile
