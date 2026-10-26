@@ -548,26 +548,47 @@ void pill(int x, int y, const char* txt, uint16_t bg, uint16_t fg) {
 const uint8_t scanPins[] = {0, 3, 4, 5, 6, 7, 8, 14, 16, 17, 18, 21, 47, 48};
 const int NUM_SCAN = sizeof(scanPins) / sizeof(scanPins[0]);
 uint32_t scanLowMask = 0;
+bool     scanInit = false;
+uint16_t scanChanges[NUM_SCAN];       // Anzahl Wechsel je Pin seit dem Start
 
 void initScan() {
-  for (int i = 0; i < NUM_SCAN; i++) pinMode(scanPins[i], INPUT_PULLUP);
+  for (int i = 0; i < NUM_SCAN; i++) { pinMode(scanPins[i], INPUT_PULLUP); scanChanges[i] = 0; }
 }
 
 void updateScan() {
+  static unsigned long last = 0;
+  if (millis() - last < 10) return;    // alle 10 ms, entprellt genug für die Zählung
+  last = millis();
   uint32_t m = 0;
   for (int i = 0; i < NUM_SCAN; i++)
     if (digitalRead(scanPins[i]) == LOW) m |= (1UL << i);
-  if (m != scanLowMask) { scanLowMask = m; dirty = true; }
+  if (!scanInit) { scanLowMask = m; scanInit = true; dirty = true; return; }
+  if (m != scanLowMask) {
+    uint32_t changed = m ^ scanLowMask;
+    for (int i = 0; i < NUM_SCAN; i++)
+      if ((changed & (1UL << i)) && scanChanges[i] < 999) scanChanges[i]++;
+    scanLowMask = m;
+    dirty = true;
+  }
 }
 
 void drawScan() {
-  char buf[48] = "LOW:";
+  char buf[64] = "LOW:";
   for (int i = 0; i < NUM_SCAN; i++)
     if (scanLowMask & (1UL << i)) {
       char n[6]; sprintf(n, " %d", scanPins[i]);
       if (strlen(buf) + strlen(n) < sizeof(buf)) strcat(buf, n);
     }
   if (!scanLowMask) strcat(buf, " -");
+  strcat(buf, "  Wechsel:");
+  bool any = false;
+  for (int i = 0; i < NUM_SCAN; i++)
+    if (scanChanges[i]) {
+      char n[14]; sprintf(n, " %d(%dx)", scanPins[i], scanChanges[i]);
+      if (strlen(buf) + strlen(n) < sizeof(buf)) strcat(buf, n);
+      any = true;
+    }
+  if (!any) strcat(buf, " -");
   gfx->setTextSize(1);
   gfx->setTextColor(C_BLUE);
   gfx->setCursor(4, 146); gfx->print(buf);
