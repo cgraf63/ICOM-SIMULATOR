@@ -58,9 +58,7 @@
 #define CAT_BAUD     38400      // bei nativem USB ohne Bedeutung
 #define RADIO_BRAND  "YAESU"
 #define RADIO_NAME   "FTX-1"
-// Antwort auf "ID;". UNGEPRÜFT: den richtigen Wert im FTX-1 CAT-Handbuch
-// unter Befehl "ID" nachsehen und hier eintragen (4 Ziffern).
-#define RADIO_ID     "0840"
+#define RADIO_ID     "0840"     // Antwort auf "ID;" laut FTX-1 CAT-Handbuch (fest)
 #define PO_MAX_W     100        // Sendeleistung bei 100 % (SPA-1 = 100 W, Field-Head = 10 W)
 
 #define SCREEN_ROTATION  1      // 1 oder 3, je nachdem wie herum das Display stehen soll

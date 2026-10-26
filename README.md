@@ -141,13 +141,11 @@ Der Sketch `YAESU_FTX1_Simulator_TEmbed/YAESU_FTX1_Simulator_TEmbed.ino` simulie
 - Änderungen am Knopf meldet der Simulator nur von selbst, wenn das Programm **Auto-Information** einschaltet (`AI1;`). Rechts neben der Schrittweite steht dann „AI ein“.
 - Unten links steht der zuletzt empfangene Befehl im Klartext, z. B. `FA;`.
 
-**Wichtig:** Die Antwort auf `ID;` ist noch ein Platzhalter (`0840`). Den richtigen Wert findest du im FTX-1 CAT-Handbuch beim Befehl „ID“. Trag ihn oben im Sketch bei `RADIO_ID` ein, falls dein Programm die ID prüft.
-
 **Unterstützte CAT-Befehle:**
 
 | Befehl | Funktion |
 |---|---|
-| `ID` | Geräte-ID |
+| `ID` | Geräte-ID, Antwort `ID0840;` wie im FTX-1-Handbuch |
 | `PS` | Einschaltzustand (immer an) |
 | `AI` | Auto-Information ein/aus |
 | `FA` / `FB` | Frequenz MAIN / SUB (9 Stellen) |

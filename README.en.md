@@ -141,13 +141,11 @@ The sketch `YAESU_FTX1_Simulator_TEmbed/YAESU_FTX1_Simulator_TEmbed.ino` simulat
 - Knob changes are only reported unsolicited when the software enables **auto information** (`AI1;`). "AI ein" then appears to the right of the tuning step.
 - The bottom left shows the last command received in plain text, e.g. `FA;`.
 
-**Important:** The reply to `ID;` is still a placeholder (`0840`). Look up the correct value under the "ID" command in the FTX-1 CAT manual and enter it at `RADIO_ID` at the top of the sketch if your software checks the ID.
-
 **Supported CAT commands:**
 
 | Command | Function |
 |---|---|
-| `ID` | Transceiver ID |
+| `ID` | Transceiver ID, reply `ID0840;` as in the FTX-1 manual |
 | `PS` | Power status (always on) |
 | `AI` | Auto information on/off |
 | `FA` / `FB` | Frequency MAIN / SUB (9 digits) |
